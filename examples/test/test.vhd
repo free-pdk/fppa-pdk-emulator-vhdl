@@ -18,4 +18,10 @@ begin
     );
 
 
+  stim: process
+  begin
+    wait for 100 us;
+    report "Ending simulation" severity failure;
+  end process;
+
 end sim;
