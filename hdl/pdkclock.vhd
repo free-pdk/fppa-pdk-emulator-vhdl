@@ -48,7 +48,10 @@ entity pdkclock is
     rst_i     : in std_logic;
     eosc_i    : in std_logic;
     clkmd_i   : in wordtype;
-    sysclk_o  : out std_logic
+    sysclk_o  : out std_logic;
+    ihrc_o    : out std_logic;
+    ilrc_o    : out std_logic;
+    eosc_o    : out std_logic
   );
 end entity pdkclock;
 
@@ -131,6 +134,8 @@ begin
     end if;
   end process;
 
-
+  ihrc_o <= ihrc_s;
+  ilrc_o <= ilrc_s;
+  eosc_o <= eosc_i;
 
 end sim;

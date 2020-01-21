@@ -87,6 +87,9 @@ architecture sim of pdk14 is
   signal opcode_valid     : std_logic := '0';
   signal rst_s            : std_ulogic := '0';
   signal sysclk_s         : std_ulogic := '0';
+  signal ihrc_s           : std_logic;
+  signal ilrc_s           : std_logic;
+  signal eosc_s           : std_logic;
   signal PC               : pctype;
   signal IPC              : pctype;
   signal npc              : pctype;
@@ -214,7 +217,10 @@ begin
     rst_i     => rst_s,
     eosc_i    => eosc_i,
     clkmd_i   => CLKMD_s,
-    sysclk_o  => sysclk_s
+    sysclk_o  => sysclk_s,
+    ihrc_o    => ihrc_s,
+    ilrc_o    => ilrc_s,
+    eosc_o    => eosc_s
   );
 
   -- Debugging purposes only, to be visible on waveform
@@ -294,9 +300,9 @@ begin
     port map (
       clk_i     => sysclk_s,
       rst_i     => rst_s,
-      ihrc_i    => '0',
-      eosc_i    => '0',
-      ilrc_i    => '0',
+      ihrc_i    => ihrc_s,
+      eosc_i    => eosc_s,
+      ilrc_i    => ilrc_s,
       comp_i    => '0',
       pa0_i     => PA_i_s(0),
       pb0_i     => PB_i_s(0),
@@ -322,9 +328,9 @@ begin
     port map (
       clk_i     => sysclk_s,
       rst_i     => rst_s,
-      ihrc_i    => '0',
-      eosc_i    => '0',
-      ilrc_i    => '0',
+      ihrc_i    => ihrc_s,
+      eosc_i    => eosc_s,
+      ilrc_i    => ilrc_s,
       comp_i    => '0',
       pa0_i     => PA_i_s(0),
       pb0_i     => PB_i_s(0),
