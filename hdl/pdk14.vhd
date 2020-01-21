@@ -94,7 +94,7 @@ architecture sim of pdk14 is
   signal sysclk_s     : std_ulogic := '0';
 
   signal PC   : pctype;
-  signal IPC  : pctype; 
+  signal IPC  : pctype;
    
   signal npc  : pctype;
 
@@ -959,8 +959,10 @@ begin
     
   end block;
 
+  -- PA Inputs directly from pads
   PA_i_s <= PA_io;
-  --PA_io <= PA_o_s;
+
+  -- PA outputs
   PA_io(0) <= PA_o_s(0);
   PA_io(1) <= PA_o_s(1);
   PA_io(2) <= PA_o_s(2);
@@ -970,18 +972,17 @@ begin
   PA_io(6) <= PA_o_s(6) when not EOSC_CONNECTED else 'X';
   PA_io(7) <= PA_o_s(7) when not EOSC_CONNECTED else 'X';
 
+  -- PB Inputs directly from pads
+  PB_i_s <= PB_io;
+
+  -- PB outputs
   PB_io(0) <= PB_o_s(0);
   PB_io(1) <= PB_o_s(1);
-  PB_io(2) <= PB_o_s(2);
+  PB_io(2) <= tim2out_s when tm2c_s(3 downto 2)="01" else PB_o_s(2);
   PB_io(3) <= PB_o_s(3);
-  PB_io(4) <= PB_o_s(4);
-  PB_io(5) <= PB_o_s(5);
-  PB_io(6) <= PB_o_s(6);
-  PB_io(7) <= PB_o_s(7);
-
-  PB_i_s <= PB_io;
-  --PB_io <= PB_o_s;
+  PB_io(4) <= tim2out_s when tm2c_s(3 downto 2)="11" else PB_o_s(4);
+  PB_io(5) <= tim3out_s when tm3c_s(3 downto 2)="01" else PB_o_s(5);
+  PB_io(6) <= tim3out_s when tm3c_s(3 downto 2)="10" else PB_o_s(6);
+  PB_io(7) <= tim3out_s when tm3c_s(3 downto 2)="11" else PB_o_s(7);
 
 end sim;
-
- 
