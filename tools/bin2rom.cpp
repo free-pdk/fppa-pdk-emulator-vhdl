@@ -39,6 +39,7 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <cstring>
+#include <cerrno>
 
 static const char *template_in = NULL;
 static const char *binary_in = NULL;
@@ -62,8 +63,10 @@ int loadbin(const char *file)
     struct stat st;
 
 
-    if (stat(file,&st)<0)
+    if (stat(file,&st)<0) {
+        fprintf(stderr,"Cannot stat %s: %s\n", file, strerror(errno));
         return -1;
+    }
 
     if (st.st_size & 1) {
         fprintf(stderr,"Input file is not 16-bit aligned\n");
@@ -73,9 +76,10 @@ int loadbin(const char *file)
 
     int f = open(file, O_BINARY| O_RDONLY);
 
-    if (f<0)
+    if (f<0) {
+        fprintf(stderr,"Cannot open %s: %s\n", file, strerror(errno));
         return -1;
-
+    }
     romv.reserve(bin_words);
 
     while(bin_words--) {
@@ -100,8 +104,10 @@ int copyandupdate()
 {
     char line[512];
     FILE *fin = fopen(template_in,"r");
-    if (NULL==fin)
+    if (NULL==fin) {
+        fprintf(stderr, "Cannot open %s: %s\n", template_in, strerror(errno));
         return -1;
+    }
 
     FILE *fout = fopen(file_out,"w");
     if (NULL==fout)
