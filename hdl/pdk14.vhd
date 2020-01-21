@@ -55,23 +55,119 @@ end entity pdk14;
 
 architecture sim of pdk14 is
 
-  signal opcode_s: opcodetype;
+  --
+  -- Local types
+  --
 
   type mem_type is array(0 to 128) of wordtype;
 
-  signal flags: flags_type;
-  signal A:  wordtype;
+  --
+  -- Constants
+  --
 
+  constant SFR_INDEX_SP   : natural := 2;
 
-  signal  ginten: std_logic;
+  --
+  -- Shared variables
+  --
 
-  signal jmp: std_logic;
-  
-  shared variable mem: mem_type;
-  
-  signal dbg_mem: mem_type;
-  
-  
+  shared variable mem     : mem_type;
+  shared variable tim16set: std_logic := '0';
+
+  --
+  -- Signals and registers
+  --
+
+  signal opcode_s         : opcodetype;
+  signal flags            : flags_type;
+  signal A                :  wordtype;
+  signal ginten           : std_logic;
+  signal jmp              : std_logic;
+  signal dbg_mem          : mem_type;
+  signal opcode_valid     : std_logic := '0';
+  signal rst_s            : std_ulogic := '0';
+  signal sysclk_s         : std_ulogic := '0';
+  signal PC               : pctype;
+  signal IPC              : pctype;
+  signal npc              : pctype;
+  signal cycle            : unsigned(31 downto 0):=(others => '0');
+  signal dec              : opdec_type;
+  signal opcode_full_s    : std_logic_vector(15 downto 0);
+  signal int_s            : std_logic := '0';
+  signal tim16setvalue    : unsigned(15 downto 0);
+  signal timer16clk       : std_ulogic;
+  signal t16cnt           : unsigned(15 downto 0);
+  signal pt16cnt          : unsigned(15 downto 0);
+  signal intsrc_s         : std_logic_vector(7 downto 0);
+  signal sfr_read         : wordtype;
+  signal sfr_wdata        : wordtype;
+  signal sfr_wmask        : wordtype;
+  signal sfr_wen          : std_logic_vector(127 downto 0);
+
+  signal SP_s             : wordtype;
+  signal CLKMD_s          : wordtype;
+  signal INTEN_s          : wordtype;
+  signal INTRQ            : wordtype;
+  signal T16M_s           : wordtype;
+  signal INTEGS_s         : wordtype;
+  signal PADIER_s         : wordtype;
+  signal PBDIER_S         : wordtype;
+  signal PA_s             : wordtype;
+  signal PAC_s            : wordtype;
+  signal PAPH_s           : wordtype;
+  signal PB_s             : wordtype;
+  signal PBC_s            : wordtype;
+  signal PBPH_s           : wordtype;
+  signal MISC             : wordtype;
+  signal TM2B_s           : wordtype;
+  signal TM2C_s           : wordtype;
+  signal TM2CT_s          : wordtype;
+  signal TM2S_s           : wordtype;
+  signal TM3B_s           : wordtype;
+  signal TM3C_s           : wordtype;
+  signal TM3CT_s          : wordtype;
+  signal TM3S_s           : wordtype;
+  signal GPCC             : wordtype;
+  signal GPCS             : wordtype;
+  signal PWMG0C           : wordtype;
+  signal PWMG0S           : wordtype;
+  signal PWMG0DTH         : wordtype;
+  signal PWMG0DTL         : wordtype;
+  signal PWMG0CUBH        : wordtype;
+  signal PWMG0CUBL        : wordtype;
+  signal PWMG1C           : wordtype;
+  signal PWMG1S           : wordtype;
+  signal PWMG1DTH         : wordtype;
+  signal PWMG1DTL         : wordtype;
+  signal PWMG1CUBH        : wordtype;
+  signal PWMG1CUBL        : wordtype;
+  signal PWMG2C           : wordtype;
+  signal PWMG2S           : wordtype;
+  signal PWMG2DTH         : wordtype;
+  signal PWMG2DTL         : wordtype;
+  signal PWMG2CUBH        : wordtype;
+  signal PWMG2CUBL        : wordtype;
+
+  signal t16intr          : std_logic;
+  signal intreq_s         : std_logic_vector(7 downto 0) := (others => '0'); -- Interrupt request
+  signal pa0_fall_s       : std_logic;
+  signal pa0_rise_s       : std_logic;
+  signal pb0_fall_s       : std_logic;
+  signal pb0_rise_s       : std_logic;
+  signal stall_s          : std_logic;
+  signal tim2out_s        : std_logic;
+  signal tim3out_s        : std_logic;
+  signal tim2int_s        : std_logic;
+  signal tim3int_s        : std_logic;
+  signal PA_i_s           : std_logic_vector(7 downto 0);
+  signal PB_i_s           : std_logic_vector(7 downto 0);
+  signal PA_o_s           : std_logic_vector(7 downto 0);
+  signal PB_o_s           : std_logic_vector(7 downto 0);
+
+  --
+  -- Function and procedure declarations
+  --
+
   function signextend15(a: in wordtype) return unsigned is
     variable r: unsigned(14 downto 0);
   begin
@@ -87,16 +183,6 @@ architecture sim of pdk14 is
     r := r + 1;
      return r;
   end function;
-  
-  signal opcode_valid : std_logic := '0';
-
-  signal rst_s        : std_ulogic := '0';
-  signal sysclk_s     : std_ulogic := '0';
-
-  signal PC   : pctype;
-  signal IPC  : pctype;
-   
-  signal npc  : pctype;
 
   procedure writeMem(address: in natural; data: in wordtype) is
   begin
@@ -116,99 +202,9 @@ architecture sim of pdk14 is
   end function;
 
 
-  signal cycle: unsigned(31 downto 0):=(others => '0');
-
-  signal dec              : opdec_type;
-  signal opcode_full_s    : std_logic_vector(15 downto 0);
-  signal int_s            : std_logic := '0';
-  
-  shared variable tim16set: std_logic := '0';
-  signal tim16setvalue    : unsigned(15 downto 0);
-  signal timer16clk       : std_ulogic;
-  signal t16cnt           : unsigned(15 downto 0);
-  signal pt16cnt          : unsigned(15 downto 0);
-
-  signal intsrc_s         : std_logic_vector(7 downto 0);
-
-  signal SP_s        : wordtype;
-  signal CLKMD_s     : wordtype;
-  signal INTEN_s     : wordtype;
-  signal INTRQ       : wordtype;
-  signal T16M_s      : wordtype;
-  signal INTEGS_s    : wordtype;
-  signal PADIER_s    : wordtype;
-  signal PBDIER_S    : wordtype;
-  
-  signal PA_s        : wordtype;
-  signal PAC_s       : wordtype;
-  signal PAPH_s      : wordtype;
-  signal PB_s        : wordtype;
-  signal PBC_s       : wordtype;
-  signal PBPH_s      : wordtype;
-  signal MISC        : wordtype;
-  signal TM2B_s      : wordtype;
-  signal TM2C_s      : wordtype;
-  signal TM2CT_s     : wordtype;
-  signal TM2S_s      : wordtype;
-  signal TM3B_s      : wordtype;
-  signal TM3C_s      : wordtype;
-  signal TM3CT_s     : wordtype;
-  signal TM3S_s      : wordtype;
-  signal GPCC        : wordtype;
-  signal GPCS        : wordtype;
-  
-  signal PWMG0C     : wordtype;
-  signal PWMG0S     : wordtype;
-  signal PWMG0DTH   : wordtype;
-  signal PWMG0DTL   : wordtype;
-  signal PWMG0CUBH  : wordtype;
-  signal PWMG0CUBL  : wordtype;
-
-  signal PWMG1C     : wordtype;
-  signal PWMG1S     : wordtype;
-  signal PWMG1DTH   : wordtype;
-  signal PWMG1DTL   : wordtype;
-  signal PWMG1CUBH  : wordtype;
-  signal PWMG1CUBL  : wordtype;
-
-  signal PWMG2C     : wordtype;
-  signal PWMG2S     : wordtype;
-  signal PWMG2DTH   : wordtype;
-  signal PWMG2DTL   : wordtype;
-  signal PWMG2CUBH  : wordtype;
-  signal PWMG2CUBL  : wordtype;
-
-
-  signal sfr_read        : wordtype;
-  signal sfr_wdata       : wordtype;
-  signal sfr_wmask       : wordtype;
-  signal sfr_wen         : std_logic_vector(127 downto 0);
-
-
-  constant SFR_INDEX_SP   : natural := 2;
-
-  signal t16intr          : std_logic;
-
-  signal intreq_s         : std_logic_vector(7 downto 0) := (others => '0'); -- Interrupt request
-  
-  signal pa0_fall_s       : std_logic;
-  signal pa0_rise_s       : std_logic;
-  signal pb0_fall_s       : std_logic;
-  signal pb0_rise_s       : std_logic;
-
-  signal stall_s          : std_logic;
-
-  signal tim2out_s        : std_logic;
-  signal tim3out_s        : std_logic;
-  signal tim2int_s        : std_logic;
-  signal tim3int_s        : std_logic;
-
-  signal PA_i_s           : std_logic_vector(7 downto 0);
-  signal PB_i_s           : std_logic_vector(7 downto 0);
-  signal PA_o_s           : std_logic_vector(7 downto 0);
-  signal PB_o_s           : std_logic_vector(7 downto 0);
-
 begin
+
+  rst_s <= '0', '1' after 10 ps, '0' after 200 ns;
 
   clock_inst: entity work.pdkclock
   generic map (
@@ -221,8 +217,7 @@ begin
     sysclk_o  => sysclk_s
   );
 
-  rst_s <= '0', '1' after 10 ps, '0' after 200 ns;
-
+  -- Debugging purposes only, to be visible on waveform
   process(sysclk_s)
   begin
     dbg_mem <= mem;
@@ -349,8 +344,6 @@ begin
       timout_o  => tim3out_s
   );
 
-
-
   -- PA0 interrupt
   process(padier_s(0), integs_s(1 downto 0), pa0_rise_s, pa0_fall_s)
   begin
@@ -410,50 +403,50 @@ begin
   with to_integer(dec.ioaddr)
     select sfr_read <=
       "0000" & flags.O & flags.AC & flags.C & flags.Z when 0,
-      SP_s     when 2,
-      CLKMD_s  when 3,
-      INTEN_s  when 4,
-      INTRQ    when 5,
-      T16M_s   when 6,
-      MISC     when 8,
-      TM2B_s   when 9,
-      (others => '0') when 10, -- EOSCR is write-only
-      INTEGS_s when 12,
-      PADIER_s when 13,
-      PBDIER_s  when 14,
-      PA_s     when 16,
-      PAC_s    when 17,
-      PAPH_s   when 18,
-      PB_s     when 20,
-      PBC_s    when 21,
-      PBPH_s   when 22,
-      TM2S_s   when 23,
-      GPCC     when 24,
-      GPCS     when 25,
-      TM2C_s   when 28,
-      TM2CT_s  when 29,
-      PWMG0C   when 32,
-      PWMG0S   when 33,
-      PWMG0DTH  when 34,
-      PWMG0DTL  when 35,
-      PWMG0CUBH  when 36,
-      PWMG0CUBL  when 37,
-      PWMG1C  when 38,
-      PWMG1S  when 39,
-      PWMG1DTH  when 40,
-      PWMG1DTL  when 41,
-      PWMG1CUBH  when 42,
-      PWMG1CUBL  when 43,
-      PWMG2C  when 44,
-      PWMG2S  when 45,
-      PWMG2DTH  when 46,
-      PWMG2DTL  when 47,
-      PWMG2CUBH  when 48,
-      PWMG2CUBL  when 49,
-      TM3C_s  when 50,
-      TM3CT_s  when 51,
-      TM3S_s  when 52,
-      TM3B_s  when 53,
+      SP_s        when 2,
+      CLKMD_s     when 3,
+      INTEN_s     when 4,
+      INTRQ       when 5,
+      T16M_s      when 6,
+      MISC        when 8,
+      TM2B_s      when 9,
+      x"00"       when 10, -- EOSCR is write-only
+      INTEGS_s    when 12,
+      PADIER_s    when 13,
+      PBDIER_s    when 14,
+      PA_s        when 16,
+      PAC_s       when 17,
+      PAPH_s      when 18,
+      PB_s        when 20,
+      PBC_s       when 21,
+      PBPH_s      when 22,
+      TM2S_s      when 23,
+      GPCC        when 24,
+      GPCS        when 25,
+      TM2C_s      when 28,
+      TM2CT_s     when 29,
+      PWMG0C      when 32,
+      PWMG0S      when 33,
+      PWMG0DTH    when 34,
+      PWMG0DTL    when 35,
+      PWMG0CUBH   when 36,
+      PWMG0CUBL   when 37,
+      PWMG1C      when 38,
+      PWMG1S      when 39,
+      PWMG1DTH    when 40,
+      PWMG1DTL    when 41,
+      PWMG1CUBH   when 42,
+      PWMG1CUBL   when 43,
+      PWMG2C      when 44,
+      PWMG2S      when 45,
+      PWMG2DTH    when 46,
+      PWMG2DTL    when 47,
+      PWMG2CUBH   when 48,
+      PWMG2CUBL   when 49,
+      TM3C_s      when 50,
+      TM3CT_s     when 51,
+      TM3S_s      when 52,
+      TM3B_s      when 53,
       (others => 'X') when others;
 
   -- ROM
@@ -464,9 +457,9 @@ begin
     dat_o => opcode_full_s
   );
 
-  
-  process(sysclk_s,rst_s)
 
+  -- Instruction fetcher
+  process(sysclk_s,rst_s)
   begin
     if rst_s='1' then
        opcode_valid <= '0';
@@ -489,7 +482,7 @@ begin
     end if;
   end process;
 
-
+  -- Instruction decoder
   decoder_i0: entity work.pdk14decode
   port map (
     opcode_i    => opcode_s,
@@ -501,6 +494,8 @@ begin
   intsrc_s  <= std_logic_vector(INTEN_s) and std_logic_vector(INTRQ);
   int_s     <=  or_reduce(intsrc_s);
 
+
+  -- Jump decoder
   process(dec.decoded, A, IPC, dec.jmpaddr, dec.memaddr, int_s, ginten, sfr_read)
     variable temp: unsigned(7 downto 0);
   begin
@@ -572,8 +567,8 @@ begin
     end if;
   end process;
 
-  -- sfr write
-  
+
+  -- SFR write
   process(dec.decoded, sfr_read, dec.ioaddr, dec.bitaddr, opcode_valid)
   begin
     sfr_wen <= (others => '0');
@@ -628,6 +623,7 @@ begin
   end process;
 
 
+  -- Main execution unit.
 
   process(sysclk_s, rst_s)
     variable zero: wordtype := (others => '0');
@@ -901,6 +897,10 @@ begin
         end if;
       end if; -- stall
 
+
+      -- TBD: this should be moved to its own module once we get
+      -- dualport registers.
+
       -- Generate T16 interrupt
       pt16cnt <= t16cnt;
       t16edge := INTEGS_s(4);
@@ -916,7 +916,10 @@ begin
     end if;
 
   end process;
- 
+
+
+  -- TBD: this should be moved to its own module once we get
+  -- dualport registers.
   tim16b: block
     signal pres: unsigned(5 downto 0);
     signal en: std_logic;
