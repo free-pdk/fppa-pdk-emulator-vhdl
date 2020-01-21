@@ -40,30 +40,30 @@ use work.txt_util.all;
 use work.pdk14pkg.all;
 
 entity pdk14decode is 
-	port (
-  	opcode_i	:	in opcodetype;
-    valid_i		: in std_logic;
+  port (
+    opcode_i  : in opcodetype;
+    valid_i   : in std_logic;
     decoded_o : out opdec_type
   );
 end entity;
     
 architecture sim of pdk14decode is
 
-	signal dec: opdec_type;
-  
-  
+  signal dec: opdec_type;
+
 begin
 
 
-	process(opcode_i, valid_i)
-  	variable dt: std_logic_vector(1 downto 0);
+  process(opcode_i, valid_i)
+    variable dt: std_logic_vector(1 downto 0);
   begin
 
-		dec.immed 	<= unsigned(opcode_i(7 downto 0));
-    dec.ioaddr	<= unsigned(opcode_i(5 downto 0));
-    dec.memaddr	<= unsigned(opcode_i(6 downto 0));
+    dec.immed   <= unsigned(opcode_i(7 downto 0));
+    dec.ioaddr  <= unsigned(opcode_i(5 downto 0));
+    dec.memaddr <= unsigned(opcode_i(6 downto 0));
     dec.jmpaddr <= unsigned(opcode_i(10 downto 0));
     dec.bitaddr <= unsigned(opcode_i(8 downto 6));
+
     if valid_i='1' then
       if opcode_i(13 downto 5)="000000000" then
         dec.decoded <= opcode_nop;       
@@ -96,17 +96,17 @@ begin
         end case;
       elsif opcode_i(13 downto 9)="00000" then
         case opcode_i(8 downto 6) is
-          when "011" 	 => dec.decoded <= opcode_xorioa;
-          when "110" 	 => dec.decoded <= opcode_movioa;
-          when "111" 	 => dec.decoded <= opcode_movaio;
-          when others  => dec.decoded <= opcode_unknown;
+          when "011"  => dec.decoded <= opcode_xorioa;
+          when "110"  => dec.decoded <= opcode_movioa;
+          when "111"  => dec.decoded <= opcode_movaio;
+          when others => dec.decoded <= opcode_unknown;
         end case;
         -- IO
       elsif opcode_i(13 downto 8)="000010" then
         dec.decoded <= opcode_retk;
-                        --000011 10000000
+
       elsif opcode_i(13 downto 8)="000011" then
-      	dt := opcode_i(8) & opcode_i(0);
+        dt := opcode_i(8) & opcode_i(0);
         dec.memaddr <= unsigned(opcode_i(6 downto 1) & '0'); -- TBD: check this please
         case dt is
           when "00"   => dec.decoded <= opcode_stt16m;
@@ -117,12 +117,12 @@ begin
         end case;
       elsif opcode_i(13 downto 9)="00010" then
         dec.decoded <= opcode_swapcio;
-        
+
       elsif opcode_i(13 downto 12)="00" then
         case opcode_i(11 downto 7) is
-                --when "01000" => dec.decoded <= opcode_nmovam;
-                --when "01001" => dec.decoded <= opcode_nmovma;
-                --when "01010" => dec.decoded <= opcode_swapm;
+          --when "01000" => dec.decoded <= opcode_nmovam;
+          --when "01001" => dec.decoded <= opcode_nmovma;
+          --when "01010" => dec.decoded <= opcode_swapm;
           when "01100" => dec.decoded <= opcode_compam;
           when "01101" => dec.decoded <= opcode_compma;
           when "01110" => dec.decoded <= opcode_naddam;
@@ -168,7 +168,7 @@ begin
       elsif opcode_i(13 downto 11)="011" then
         --dec.ioaddr(7) <= '0';
         case opcode_i(10 downto 9) is
-        	when "00"   => dec.decoded <= opcode_t0snio;
+          when "00"   => dec.decoded <= opcode_t0snio;
           when "01"   => dec.decoded <= opcode_t1snio;
           when "10"   => dec.decoded <= opcode_set0io;
           when "11"   => dec.decoded <= opcode_set1io;
@@ -186,7 +186,7 @@ begin
 
       elsif opcode_i(13 downto 11)="101" then
         case opcode_i(10 downto 8) is
-        	when "000"  => dec.decoded <= opcode_addak;
+          when "000"  => dec.decoded <= opcode_addak;
           when "001"  => dec.decoded <= opcode_subak;
           when "010"  => dec.decoded <= opcode_ceqsnak;
           when "011"  => dec.decoded <= opcode_cneqsnak;
@@ -199,19 +199,18 @@ begin
 
       elsif opcode_i(13 downto 12)="11" then
         case opcode_i(11) is
-          when '0' 		=> dec.decoded <= opcode_gotok;
-          when '1' 		=> dec.decoded <= opcode_callk;
+          when '0'    => dec.decoded <= opcode_gotok;
+          when '1'    => dec.decoded <= opcode_callk;
           when others => dec.decoded <= opcode_unknown;
         end case;
       else
-    	  dec.decoded <= opcode_unknown;
+        dec.decoded <= opcode_unknown;
       end if;
     else
-    	dec.decoded <= opcode_nop;
-  	end if;
+      dec.decoded <= opcode_nop;
+    end if;
   end process;
 
+  decoded_o <= dec;
 
-	decoded_o <= dec;
-  
 end sim;

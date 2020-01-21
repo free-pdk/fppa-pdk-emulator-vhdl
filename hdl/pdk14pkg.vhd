@@ -144,12 +144,12 @@ package pdk14pkg is
   );
 
   type opdec_type is record
-    immed 		: wordtype;
+    immed     : wordtype;
     ioaddr    : ioaddrtype;
     memaddr   : memaddrtype;
-    bitaddr		: unsigned(2 downto 0);
+    bitaddr   : unsigned(2 downto 0);
     jmpaddr   : pctype;
-    decoded  	: decoded_opcode_type;
+    decoded   : decoded_opcode_type;
   end record;
 
   type flags_type is record
@@ -199,7 +199,7 @@ package body pdk14pkg is
 
   function opname(op: in opdec_type) return string is
   begin
-  	case op.decoded is
+    case op.decoded is
         when opcode_nop     => return "NOP     ";
         when opcode_addca   => return "ADDC A  ";
         when opcode_subca   => return "SUBC A  ";
@@ -243,56 +243,56 @@ package body pdk14pkg is
         when opcode_naddma  => return "NADD "& memname(op) & ", A";
         when opcode_addma   => return "ADD "& memname(op) &", A";
         when opcode_subma   => return "SUB "& memname(op) &", A";
-        when opcode_addcma 	=> return "ADDC "& memname(op) &",A";
-        when opcode_subcma 	=> return "SUBC "& memname(op) &",A";
-        when opcode_andma 	=> return "AND "& memname(op) &", A";
-        when opcode_orma 		=> return "OR "& memname(op) &",A  ";
-        when opcode_xorma 	=> return "XOR "& memname(op) &", A";
-        when opcode_movma 	=> return "MOV "& memname(op) &", A";
-        when opcode_addam 	=> return "ADD A, "& memname(op);
-        when opcode_subam 	=> return "SUB A, "& memname(op);
-        when opcode_addcam 	=> return "ADDC A, "& memname(op);
-        when opcode_subcam 	=> return "SUBC A, "& memname(op);
-        when opcode_andam 	=> return "AND A, "& memname(op);
-        when opcode_oram 		=> return "OR A,"& memname(op);
-        when opcode_xoram 	=> return "XOR A, "& memname(op);
-        when opcode_movam 	=> return "MOV A, "& memname(op);
-        when opcode_addcm 	=> return "ADDC "& memname(op);
-        when opcode_subcm 	=> return "SUBC "& memname(op);
-        when opcode_izsnm 	=> return "IZSN "& memname(op);
-        when opcode_dzsnm 	=> return "DZSN "& memname(op);
-        when opcode_incm 		=> return "INC "& memname(op);
-        when opcode_decm 		=> return "DEC "& memname(op);
+        when opcode_addcma  => return "ADDC "& memname(op) &",A";
+        when opcode_subcma  => return "SUBC "& memname(op) &",A";
+        when opcode_andma   => return "AND "& memname(op) &", A";
+        when opcode_orma    => return "OR "& memname(op) &",A  ";
+        when opcode_xorma   => return "XOR "& memname(op) &", A";
+        when opcode_movma   => return "MOV "& memname(op) &", A";
+        when opcode_addam   => return "ADD A, "& memname(op);
+        when opcode_subam   => return "SUB A, "& memname(op);
+        when opcode_addcam  => return "ADDC A, "& memname(op);
+        when opcode_subcam  => return "SUBC A, "& memname(op);
+        when opcode_andam   => return "AND A, "& memname(op);
+        when opcode_oram    => return "OR A,"& memname(op);
+        when opcode_xoram   => return "XOR A, "& memname(op);
+        when opcode_movam   => return "MOV A, "& memname(op);
+        when opcode_addcm   => return "ADDC "& memname(op);
+        when opcode_subcm   => return "SUBC "& memname(op);
+        when opcode_izsnm   => return "IZSN "& memname(op);
+        when opcode_dzsnm   => return "DZSN "& memname(op);
+        when opcode_incm    => return "INC "& memname(op);
+        when opcode_decm    => return "DEC "& memname(op);
         when opcode_clearm  => return "CLEAR "& memname(op);
-        when opcode_xchm 		=> return "XCH "& memname(op);
-        when opcode_notm 		=> return "NOT "& memname(op);
-        when opcode_negm 		=> return "NEG "& memname(op);
-        when opcode_srm 		=> return "SR "& memname(op);
-        when opcode_slm 		=> return "SL "& memname(op);
-        when opcode_srcm 		=> return "SRC "& memname(op);
-        when opcode_slcm 		=> return "SLC "& memname(op);
+        when opcode_xchm    => return "XCH "& memname(op);
+        when opcode_notm    => return "NOT "& memname(op);
+        when opcode_negm    => return "NEG "& memname(op);
+        when opcode_srm     => return "SR "& memname(op);
+        when opcode_slm     => return "SL "& memname(op);
+        when opcode_srcm    => return "SRC "& memname(op);
+        when opcode_slcm    => return "SLC "& memname(op);
         when opcode_ceqsnam => return "CEQSN A, "& memname(op);
         when opcode_cneqsnam=> return "CNEQSN A, "& memname(op);
-        when opcode_t0snio 	=> return "T0SN " & ioname(op) & "." & bitname(op);
-        when opcode_t1snio 	=> return "T1SN "& ioname(op)& "." & bitname(op);
-        when opcode_set0io 	=> return "SET0 "& ioname(op)& "." & bitname(op);
-        when opcode_set1io 	=> return "SET1 "& ioname(op)& "." & bitname(op);
-        when opcode_t0snm 	=> return "T0SN "& memname(op)& "." & bitname(op);
-        when opcode_t1snm 	=> return "T1SN "& memname(op)& "." & bitname(op);
-        when opcode_set0m 	=> return "SET0 "& memname(op)& "." & bitname(op);
-        when opcode_set1m 	=> return "SET1 "& memname(op)& "." & bitname(op);
-        when opcode_addak 	=> return "ADD A, "&immedname(op);
-        when opcode_subak 	=> return "SUB A, "&immedname(op);
+        when opcode_t0snio  => return "T0SN " & ioname(op) & "." & bitname(op);
+        when opcode_t1snio  => return "T1SN "& ioname(op)& "." & bitname(op);
+        when opcode_set0io  => return "SET0 "& ioname(op)& "." & bitname(op);
+        when opcode_set1io  => return "SET1 "& ioname(op)& "." & bitname(op);
+        when opcode_t0snm   => return "T0SN "& memname(op)& "." & bitname(op);
+        when opcode_t1snm   => return "T1SN "& memname(op)& "." & bitname(op);
+        when opcode_set0m   => return "SET0 "& memname(op)& "." & bitname(op);
+        when opcode_set1m   => return "SET1 "& memname(op)& "." & bitname(op);
+        when opcode_addak   => return "ADD A, "&immedname(op);
+        when opcode_subak   => return "SUB A, "&immedname(op);
         when opcode_ceqsnak => return "CEQSN A,"&immedname(op);
         when opcode_cneqsnak=> return "CNEQSN A,"&immedname(op);
-        when opcode_andak 	=> return "AND A, "&immedname(op);
-        when opcode_orak  	=> return "OR A, "&immedname(op);
-        when opcode_xorak 	=> return "XOR A, "&immedname(op);
-        when opcode_movak 	=> return "MOV A, "&immedname(op);
+        when opcode_andak   => return "AND A, "&immedname(op);
+        when opcode_orak    => return "OR A, "&immedname(op);
+        when opcode_xorak   => return "XOR A, "&immedname(op);
+        when opcode_movak   => return "MOV A, "&immedname(op);
         when opcode_swapcio => return "SWAPC " &ioname(op) & "." & bitname(op);
-        when opcode_gotok 	=> return "GOTO "&immedname(op);
-        when opcode_callk 	=> return "CALL "&immedname(op);
-        when others =>         return "UNKNOWN ";
+        when opcode_gotok   => return "GOTO "&immedname(op);
+        when opcode_callk   => return "CALL "&immedname(op);
+        when others         => return "UNKNOWN ";
       end case;
   end function;
 
