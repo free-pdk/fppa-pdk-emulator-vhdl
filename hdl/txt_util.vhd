@@ -36,7 +36,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use std.textio.all;
-
+use ieee.math_real.all;
 library work;
 
 package txt_util is
@@ -73,6 +73,8 @@ package txt_util is
     -- convert std_logic_vector into a string in hex format
     function hstr(slv: std_logic_vector) return string;
 
+    -- converts real to string
+    function str(r: real; decimal: integer) return string;
 
     -- functions to manipulate strings
     -----------------------------------
@@ -300,6 +302,27 @@ package body txt_util is
 
    end str;
 
+   function str(r: real; decimal: integer) return string is
+     variable intpart: integer;
+     variable fracpart: integer;
+     variable mult: real := 10.0;
+     variable rr: real;
+     variable fstr: string(1 to decimal);
+     variable l: natural;
+   begin
+     intpart := integer(trunc(r));
+     for l in 1 to decimal loop
+       rr := r * mult;
+       if (l=decimal) then
+         -- Round up
+         rr := rr + 0.5;
+       end if;
+       fracpart := integer(trunc(rr)) mod 10;
+       fstr(l) := chr( fracpart );
+       mult := mult * 10.0;
+     end loop;
+     return str(intpart) & "." & fstr(1 to decimal);
+   end function;
 
   -- convert integer to string, using base 10
   function str(int: integer) return string is
@@ -525,13 +548,8 @@ begin
      k      := k - 1;
   end loop;
   return slv;
-end to_std_logic_vector;                                       
-                                       
-                                       
-                                       
-                                       
-                                       
-                                       
+end to_std_logic_vector;
+
 ----------------
 --  file I/O  --
 ----------------
