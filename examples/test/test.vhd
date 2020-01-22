@@ -9,9 +9,14 @@ architecture sim of test is
   signal pa_s :  std_logic_vector(7 downto 0);
   signal pb_s :  std_logic_vector(7 downto 0);
 
+  constant DEBUG_ENABLED: boolean := false;
+
 begin
 
   dut: entity work.pdk14
+    generic map (
+      DEBUG_ENABLED => DEBUG_ENABLED
+    )
     port map (
       PA_io => pa_s,
       PB_io => pb_s

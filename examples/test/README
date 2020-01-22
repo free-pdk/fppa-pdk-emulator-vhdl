@@ -1,0 +1,79 @@
+The example build was tested under linux. Should work on other operating systems as well,
+let me know if you find any issues.
+
+Before you build the example, make sure you build the "bin2rom" tool, which you can find
+under the "tools" folder on the repository root.
+
+In order build the simulation model you will also need SDCC, and GHDL. in order to view 
+the waveforms, you need GTKWAVE.
+
+Building
+
+	Just type "make" inside this folder, it should generate the simulation binary.
+        
+Running
+
+	Run the simulation with 
+        	./test --wave=waveform.ghw
+        
+        View the "waveform.ghw" waveform with gtkwave.
+
+Debugging
+
+	You can enable debug by setting DEBUG_ENABLED to true in "test.vhd":
+
+        	constant DEBUG_ENABLED: boolean := true;
+
+Example output from build:
+-------------------------------------------------------------------------------
+$ make
+sdcc -mpdk14 --opt-code-size --fomit-frame-pointer --fverbose-asm --i-code-in-asm --out-fmt-ihx testapp.c -o testapp.ihex
+objcopy -I ihex -O binary testapp.ihex testapp.bin
+../../tools/bin2rom -t ../../hdl/pdkrom.vhd.in -i testapp.bin -o pdkrom.vhd
+Loaded 62 words
+ghdl -i ../../hdl/pdk14pkg.vhd ../../hdl/pdkclock.vhd ../../hdl/pdkport.vhd ../../hdl/pdkscaler.vhd ../../hdl/pdktim.vhd ../../hdl/pdkpwmg.vhd ../../hdl/pdkreg.vhd ../../hdl/txt_util.vhd ../../hdl/measperiod.vhd ../../hdl/pdk14decode.vhd ../../hdl/pdk14.vhd ../../hdl/pdkpkg.vhd test.vhd pdkrom.vhd
+ghdl -m --ieee=synopsys -fexplicit test
+../../hdl/txt_util.vhd:620:11:warning: procedure "str_write" is never referenced
+analyze ../../hdl/txt_util.vhd
+../../hdl/txt_util.vhd:620:11:warning: procedure "str_write" is never referenced
+analyze ../../hdl/pdk14pkg.vhd
+analyze ../../hdl/pdkpkg.vhd
+analyze ../../hdl/pdkclock.vhd
+analyze ../../hdl/pdkreg.vhd
+analyze ../../hdl/pdkport.vhd
+analyze ../../hdl/pdkscaler.vhd
+analyze ../../hdl/pdktim.vhd
+analyze ../../hdl/pdkpwmg.vhd
+analyze pdkrom.vhd
+analyze ../../hdl/pdk14decode.vhd
+analyze ../../hdl/pdk14.vhd
+analyze ../../hdl/measperiod.vhd
+analyze test.vhd
+elaborate test
+
+
+Example output from simulation execution:
+-------------------------------------------------------------------------------
+$ ./test --wave=waveform.ghw
+../../hdl/measperiod.vhd:80:7:@52593750ps:(report note): PA3: period 31625 ns (31.62 kHz), on 15625 ns (49.41%)
+../../hdl/measperiod.vhd:80:7:@84593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@116593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@148593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@150718750ps:(report note): PB5: period 64000 ns (15.63 kHz), on 32000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@180593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@212593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@214718750ps:(report note): PB5: period 64000 ns (15.63 kHz), on 32000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@244593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@276593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@278718750ps:(report note): PB5: period 64000 ns (15.63 kHz), on 32000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@308593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@340593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@342718750ps:(report note): PB5: period 64000 ns (15.63 kHz), on 32000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@372593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@404593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@406718750ps:(report note): PB5: period 64000 ns (15.63 kHz), on 32000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@436593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@468593750ps:(report note): PA3: period 32000 ns (31.25 kHz), on 16000 ns (50.00%)
+../../hdl/measperiod.vhd:80:7:@470718750ps:(report note): PB5: period 64000 ns (15.63 kHz), on 32000 ns (50.00%)
+test.vhd:40:5:@500us:(report failure): Ending simulation
+
