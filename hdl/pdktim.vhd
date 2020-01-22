@@ -84,11 +84,11 @@ architecture sim of pdktim is
   signal pa0n_s   : std_logic;
   signal pb0n_s   : std_logic;
   signal pa4n_s   : std_logic;
-  signal pres_r   : unsigned(5 downto 0);
-  signal scal_r   : unsigned(4 downto 0);
-  signal timpres_s: std_logic; -- timer clock after prescaler
+  --signal pres_r   : unsigned(5 downto 0);
+  --signal scal_r   : unsigned(4 downto 0);
+  --signal timpres_s: std_logic; -- timer clock after prescaler
   signal tick_s   : std_logic;
-  signal stick_s  : std_logic;
+  --signal stick_s  : std_logic;
   signal event_s  : std_logic;
   signal toggle_r : std_logic;
   signal pwmcmp_s : std_logic;
@@ -131,46 +131,16 @@ begin
     pa4n_s  when "1101",
     '0'     when others;
 
-  -- Prescaler
+  -- Prescaler+Scaler
 
-  process(rst_i, timclk_s)
-  begin
-    if rst_i='1' then
-      pres_r <= (others =>'0');
-    else
-      if rising_edge(timclk_s) then
-        pres_r <= pres_r + 1;
-      end if;
-    end if;
-  end process;
-
-  with s_r(6 downto 5) select timpres_s <=
-    timclk_s  when "00",
-    pres_r(1) when "01",  -- /4
-    pres_r(3) when "10",  -- /16
-    pres_r(5) when "11",  -- /64
-    '0' when others;
-
-  -- Scalar...
-  process(rst_i, timpres_s)
-  begin
-    if rst_i='1' then
-      scal_r <= (others =>'0');
-      stick_s <= '0';
-    else
-      if rising_edge(timpres_s) then
-        if scal_r >= s_r(4 downto 0) then
-          scal_r <= (others => '0');
-          stick_s <= not stick_s;
-        else
-          scal_r <= scal_r + 1;
-        end if;
-      end if;
-    end if;
-  end process;
-
-  tick_s <= timpres_s when s_r(4 downto 0)="00000" else stick_s;
-
+  scale_i:  entity work.pdkscaler
+    port map (
+      clk_i   => timclk_s,
+      rst_i   => rst_i,
+      pres_i  => s_r(6 downto 5),
+      scal_i  => s_r(4 downto 0),
+      clk_o   => tick_s
+    );
 
   process(rst_i, tick_s)
     variable resetcnt_v: boolean;

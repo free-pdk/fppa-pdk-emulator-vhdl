@@ -11,6 +11,7 @@ HDL=../../hdl
 COREHDL= $(HDL)/pdk14pkg.vhd \
 	$(HDL)/pdkclock.vhd \
 	$(HDL)/pdkport.vhd \
+	$(HDL)/pdkscaler.vhd \
 	$(HDL)/pdktim.vhd \
 	$(HDL)/pdkreg.vhd \
 	$(HDL)/txt_util.vhd \
