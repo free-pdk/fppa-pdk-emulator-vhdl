@@ -17,10 +17,26 @@ begin
       PB_io => pb_s
     );
 
+  m1: entity work.measperiod
+    generic map (
+      NAME => "PA3"
+    )
+    port map (
+      sig_i   => pa_s(3)
+    );
+
+  m2: entity work.measperiod
+    generic map (
+      NAME => "PB5"
+    )
+    port map (
+      sig_i   => pb_s(5)
+    );
+
 
   stim: process
   begin
-    wait for 100 us;
+    wait for 500 us;
     report "Ending simulation" severity failure;
   end process;
 
