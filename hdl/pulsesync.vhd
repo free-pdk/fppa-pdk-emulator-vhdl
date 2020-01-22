@@ -1,5 +1,5 @@
 --
---  FPPA PDK14 Microcontroller simulation model - Simple register model
+--  FPPA PDK14 Microcontroller simulation model - PWMG model
 --
 --  Copyright 2020 Alvaro Lopes <alvieboy@alvie.com>
 --
@@ -33,47 +33,49 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
---use IEEE.STD_LOGIC_signed.all;
 use ieee.numeric_std.all;
-library work;
-use work.txt_util.all;
-use work.pdkpkg.all;
 
-entity pdkreg is
-  generic(
-    RESET : wordtype := (others => '0');
-    NAME: string;
-    DEBUG_ENABLED: boolean := false
-  );
+entity pulsesync is
   port (
-    clk_i   : in std_ulogic;
-    rst_i   : in std_ulogic;
-    dat_i   : in wordtype;
-    mask_i  : in wordtype;
-    wen_i   : in std_logic;
-    dat_o   : out wordtype
+    wclk_i  : in std_logic;
+    rst_i   : in std_logic; -- Async
+    d_i     : in std_logic;
+    en_i    : in std_logic;
+
+    rclk_i  : in std_logic;
+    d_o     : out std_logic
   );
-end entity pdkreg;
+end entity pulsesync;
 
-architecture sim of pdkreg is
 
-  signal r: wordtype;
+architecture sim of pulsesync is
+
+  signal rq1_r, wq1_r, wq2_r: std_logic;
 
 begin
-  process( clk_i, rst_i )
+
+  process(wclk_i)
   begin
     if rst_i='1' then
-      r <= RESET;
-    elsif rising_edge(clk_i) then
-      if wen_i='1' then
-        if DEBUG_ENABLED then
-          report "SFR " & NAME & " write, data " & hstr(std_logic_vector(dat_i)) & " mask " & hstr(std_logic_vector(mask_i));
-        end if;
-        r <= (r and not mask_i) or (dat_i AND mask_i);
+      rq1_r <= '0';
+    elsif rising_edge(wclk_i) then
+      if en_i='1' then
+        rq1_r <= rq1_r xor d_i;
       end if;
     end if;
   end process;
 
-  dat_o <= r;
+  process(rclk_i)
+  begin
+    if rst_i='1' then
+      wq1_r <= '0';
+      wq2_r <= '0';
+    elsif rising_edge(rclk_i) then
+      wq1_r <= rq1_r;
+      wq2_r <= wq1_r;
+    end if;
+  end process;
+
+  d_o <= wq1_r xor wq2_r;
 
 end sim;

@@ -43,7 +43,8 @@ use work.pdk14pkg.all;
 entity pdk14 is
   generic (
     -- Setting this to true will enable EOSC input and disable PA6/PA7
-    EOSC_CONNECTED: boolean := false
+    EOSC_CONNECTED: boolean := false;
+    DEBUG_ENABLED: boolean := false
   );
   port (
     PA_io   : inout std_logic_vector(7 downto 0);
@@ -132,12 +133,12 @@ architecture sim of pdk14 is
   signal TM3S_s           : wordtype;
   signal GPCC             : wordtype;
   signal GPCS             : wordtype;
-  signal PWMG0C           : wordtype;
-  signal PWMG0S           : wordtype;
-  signal PWMG0DTH         : wordtype;
-  signal PWMG0DTL         : wordtype;
-  signal PWMG0CUBH        : wordtype;
-  signal PWMG0CUBL        : wordtype;
+  signal PWMG0C_s         : wordtype;
+  signal PWMG0S_s         : wordtype;
+  --signal PWMG0DTH         : wordtype;
+  --signal PWMG0DTL         : wordtype;
+  --signal PWMG0CUBH        : wordtype;
+  --signal PWMG0CUBL        : wordtype;
   signal PWMG1C           : wordtype;
   signal PWMG1S           : wordtype;
   signal PWMG1DTH         : wordtype;
@@ -166,6 +167,9 @@ architecture sim of pdk14 is
   signal PB_i_s           : std_logic_vector(7 downto 0);
   signal PA_o_s           : std_logic_vector(7 downto 0);
   signal PB_o_s           : std_logic_vector(7 downto 0);
+  signal pwmg0int_s       : std_logic;
+  signal pwmg0out_s       : std_logic;
+  signal pwmg0active_s    : std_logic;
 
   --
   -- Function and procedure declarations
@@ -189,7 +193,9 @@ architecture sim of pdk14 is
 
   procedure writeMem(address: in natural; data: in wordtype) is
   begin
-    report " WRITE address=" & str(address) & " value 0x" & hstr(std_logic_vector(data));
+    if DEBUG_ENABLED then
+      report " WRITE address=" & str(address) & " value 0x" & hstr(std_logic_vector(data));
+    end if;
     mem(address) := data;
   end procedure;
 
@@ -200,7 +206,9 @@ architecture sim of pdk14 is
       report "Out of bounds mem access " &str(address) & " pc 0x" & hstr(std_logic_vector(ipc));
     end if;
     d:=mem(address);
-    report " READ address=" & str(address) & " value 0x" & hstr(std_logic_vector(d));
+    if DEBUG_ENABLED then
+      report " READ address=" & str(address) & " value 0x" & hstr(std_logic_vector(d));
+    end if;
     return d;
   end function;
 
@@ -357,6 +365,39 @@ begin
   );
   intreq_s(7) <= tim3int_s;
 
+  -- PWMG0
+
+  pwmg0_inst: entity work.pdkpwmg
+    generic map (
+      NAME  => "PWMG0"
+    )
+    port map (
+      sysclk_i  => sysclk_s,
+      ihrc_i    => ihrc_s,
+      rst_i     => rst_s,
+  
+      dat_i     => sfr_wdata,
+      mask_i    => sfr_wmask,
+      c_wen_i   => sfr_wen(32),
+      s_wen_i   => sfr_wen(33),
+      cubh_wen_i=> sfr_wen(36),
+      cubl_wen_i=> sfr_wen(37),
+      dth_wen_i => sfr_wen(34),
+      dtl_wen_i => sfr_wen(35),
+  
+      -- Register values
+      c_o       => PWMG0C_s,
+      s_o       => PWMG0S_s,
+      -- CUB/DT are read only.
+  
+      intr_o    => pwmg0int_s,
+      -- Timer output. 
+      timout_o  => pwmg0out_s,
+      active_o  => pwmg0active_s
+    );
+
+
+
   -- PA0 interrupt
   process(padier_s(0), integs_s(1 downto 0), pa0_rise_s, pa0_fall_s)
   begin
@@ -398,8 +439,9 @@ begin
       INTRQ <= (others => '0');
     elsif rising_edge(sysclk_s) then
       if sfr_wen(5)='1' then
-        report "SFR INTRQ write, data " & hstr(std_logic_vector(sfr_wdata)) & " mask " & hstr(std_logic_vector(sfr_wmask));
-
+        if DEBUG_ENABLED then
+          report "SFR INTRQ write, data " & hstr(std_logic_vector(sfr_wdata)) & " mask " & hstr(std_logic_vector(sfr_wmask));
+        end if;
         INTRQ <= (INTRQ and not sfr_wmask) or (sfr_wdata AND sfr_wmask);
       end if;
       -- Set interrupt even if we cleared from SW
@@ -438,12 +480,12 @@ begin
       GPCS        when 25,
       TM2C_s      when 28,
       TM2CT_s     when 29,
-      PWMG0C      when 32,
-      PWMG0S      when 33,
-      PWMG0DTH    when 34,
-      PWMG0DTL    when 35,
-      PWMG0CUBH   when 36,
-      PWMG0CUBL   when 37,
+      PWMG0C_s    when 32,
+      PWMG0S_s    when 33,
+      x"00"       when 34, -- PWMG0DTH is write-only
+      x"00"       when 35, -- PWMG0DTL is write-only
+      x"00"       when 36, -- PWMG0CUBH is write-only
+      x"00"       when 37, -- PWMG0CUBL is write-only
       PWMG1C      when 38,
       PWMG1S      when 39,
       PWMG1DTH    when 40,
@@ -483,8 +525,9 @@ begin
           PC <= npc;
           IPC <= npc; -- To avoid interrupt not picking up return address.
           opcode_valid <= '0';
-          report "Jumping to " & hstr(std_logic_vector(npc));
-  
+          if DEBUG_ENABLED then
+            report "Jumping to " & hstr(std_logic_vector(npc));
+          end if;
         else 
           opcode_s <= opcode_full_s(opcode_s'HIGH downto 0);
           opcode_valid <= '1';
@@ -733,12 +776,13 @@ begin
     elsif rising_edge(sysclk_s) then
     
       cycle <= cycle+1;
-
-      report hstr(std_logic_vector(cycle))&" PC:0x"&hstr(std_logic_vector(IPC)) 
+      if DEBUG_ENABLED then
+        report hstr(std_logic_vector(cycle))&" PC:0x"&hstr(std_logic_vector(IPC)) 
           & " SP:0x" & hstr(std_logic_vector(SP_s))
           & " fl:[" & flagsname(flags) & "] "
           & " A:0x" & hstr(std_logic_vector(A)) 
           & " opcode " & str(opcode_s) & " " & opname(dec);
+      end if;
 
       unimpl := false;
       if stall_s='1' then
@@ -921,7 +965,7 @@ begin
       t16intindex := to_integer (T16M_s(2 downto 0) ) + 8;
       --report "INT INDEX " & str(t16intindex);
       if (pt16cnt(t16intindex)=t16edge and t16cnt(t16intindex)=not t16edge) then
-        report "Interrupt";
+        --report "Interrupt";
         --SFR_INTRQ(2) <= '1';
         intreq_s(2) <= '1';
       end if;
@@ -997,7 +1041,9 @@ begin
   PB_io(2) <= tim2out_s when tm2c_s(3 downto 2)="01" else PB_o_s(2);
   PB_io(3) <= PB_o_s(3);
   PB_io(4) <= tim2out_s when tm2c_s(3 downto 2)="11" else PB_o_s(4);
-  PB_io(5) <= tim3out_s when tm3c_s(3 downto 2)="01" else PB_o_s(5);
+  PB_io(5) <= tim3out_s when tm3c_s(3 downto 2)="01"
+              else pwmg0out_s when pwmg0c_s(3 downto 1)="001"
+              else PB_o_s(5);
   PB_io(6) <= tim3out_s when tm3c_s(3 downto 2)="10" else PB_o_s(6);
   PB_io(7) <= tim3out_s when tm3c_s(3 downto 2)="11" else PB_o_s(7);
 
