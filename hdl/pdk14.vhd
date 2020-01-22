@@ -121,7 +121,7 @@ architecture sim of pdk14 is
   signal PB_s             : wordtype;
   signal PBC_s            : wordtype;
   signal PBPH_s           : wordtype;
-  signal MISC             : wordtype;
+  signal MISC_s           : wordtype;
   signal TM2B_s           : wordtype;
   signal TM2C_s           : wordtype;
   signal TM2CT_s          : wordtype;
@@ -250,6 +250,9 @@ begin
   CLKMDinst: entity work.pdkreg generic map ( NAME => "CLKMD", RESET => x"E0" )
     port map ( clk_i => sysclk_s, rst_i => rst_s, dat_i => sfr_wdata, mask_i => sfr_wmask, wen_i => sfr_wen(3), dat_o => CLKMD_s );
 
+  MISCinst: entity work.pdkreg generic map ( NAME => "MISC" )
+    port map ( clk_i => sysclk_s, rst_i => rst_s, dat_i => sfr_wdata, mask_i => sfr_wmask, wen_i => sfr_wen(8), dat_o => MISC_s );
+
 
   -- Ports
   PAinst: entity work.pdkport
@@ -319,8 +322,10 @@ begin
       s_o       => TM2S_s,
       ct_o      => TM2CT_s,
       b_o       => TM2B_s,
-      timout_o  => tim2out_s
+      timout_o  => tim2out_s,
+      intr_o    => tim2int_s
   );
+  intreq_s(6) <= tim2int_s;
 
   -- Tim3
   tim3inst: entity work.pdktim
@@ -347,8 +352,10 @@ begin
       s_o       => TM3S_s,
       ct_o      => TM3CT_s,
       b_o       => TM3B_s,
-      timout_o  => tim3out_s
+      timout_o  => tim3out_s,
+      intr_o    => tim3int_s
   );
+  intreq_s(7) <= tim3int_s;
 
   -- PA0 interrupt
   process(padier_s(0), integs_s(1 downto 0), pa0_rise_s, pa0_fall_s)
@@ -414,7 +421,7 @@ begin
       INTEN_s     when 4,
       INTRQ       when 5,
       T16M_s      when 6,
-      MISC        when 8,
+      MISC_s      when 8,
       TM2B_s      when 9,
       x"00"       when 10, -- EOSCR is write-only
       INTEGS_s    when 12,
