@@ -82,9 +82,11 @@ begin
   -- Sync
   process(clk_i)
   begin
-    Dq1_r <= to_stdlogicvector(to_bitvector(pad_i));
-    Din_r <= Dq1_r;
-    p0_qr <= Din_r(0);
+    if rising_edge(clk_i) then
+      Dq1_r <= to_stdlogicvector(to_bitvector(pad_i));
+      Din_r <= Dq1_r;
+      p0_qr <= Din_r(0);
+    end if;
   end process;
 
   Cinst: entity work.pdkreg generic map ( NAME => NAME & "C" )
