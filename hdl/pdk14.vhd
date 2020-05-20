@@ -175,13 +175,13 @@ architecture sim of pdk14 is
   -- Function and procedure declarations
   --
 
-  function signextend15(a: in wordtype) return unsigned is
-    variable r: unsigned(14 downto 0);
+  function signextend11(a: in wordtype) return unsigned is
+    variable r: unsigned(10 downto 0);
   begin
     r(7 downto 0) := a;
-    r(14 downto 8) := (others => a(7));
+    r(10 downto 8) := (others => a(7));
     return r;
-  end signextend15;
+  end signextend11;
   
   function neg(a: in wordtype) return unsigned is
     variable r: wordtype;
@@ -562,7 +562,7 @@ begin
     else
       case dec.decoded is
         when opcode_pcadda =>
-          npc <= IPC + signextend15(A);
+          npc <= IPC + signextend11(A);
           jmp <= '1';
         when opcode_ret | opcode_reti | opcode_retk =>
           temp := readMem(to_integer(SP_s-1));
